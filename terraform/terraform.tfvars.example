@@ -1,0 +1,8 @@
+# Copy this file to terraform.tfvars and fill in your values
+# DO NOT commit terraform.tfvars to version control
+
+aws_region        = "us-east-1"
+db_instance_class = "db.t3.micro"
+db_name           = "mazegame"
+db_username       = "mazegameadmin"
+db_password       = "YourSecurePasswordHere123!" # Change this to a secure password

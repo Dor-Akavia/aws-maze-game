@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maze Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f5f5f5;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .game-canvas-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        #gameCanvas {
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .controls {
+            text-align: center;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .keyboard-hint {
+            display: inline-flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .key {
+            background: #667eea;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #e74c3c;
+            background: #ffe6e6;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-title {
+            font-size: 2em;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .modal-message {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .footer {
+            text-align: center;
+            color: #999;
+            font-size: 0.85em;
+            margin-top: 20px;
+        }
+
+        .badge {
+            background: #ffd93d;
+            color: #333;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.75em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🎮 Maze Game <span class="badge">Tarin</span></h1>
+            <p class="subtitle">Navigate through 10 progressive mazes</p>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat">
+                <div class="stat-label">Stage</div>
+                <div class="stat-value" id="currentStage">1/10</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Moves</div>
+                <div class="stat-value" id="moves">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Time</div>
+                <div class="stat-value" id="time">0.0s</div>
+            </div>
+        </div>
+
+        <div id="loadingMessage" class="loading">
+            Loading maze data...
+        </div>
+
+        <div id="errorMessage" class="error" style="display: none;"></div>
+
+        <div class="game-canvas-container" id="canvasContainer" style="display: none;">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+        </div>
+
+        <div class="controls">
+            <p>Use arrow keys to move</p>
+            <div class="keyboard-hint">
+                <span class="key">↑</span>
+                <span class="key">←</span>
+                <span class="key">↓</span>
+                <span class="key">→</span>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Movement is instant (local). Analytics sent asynchronously.</p>
+        </div>
+    </div>
+
+    <!-- Stage Complete Modal -->
+    <div id="stageCompleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">🎉 Stage Complete!</div>
+            <div class="modal-message" id="stageCompleteMessage">
+                You completed Stage 1!<br>
+                Time: <span id="stageTime">0.0s</span> | Moves: <span id="stageMoves">0</span>
+            </div>
+            <button class="btn" onclick="continueToNextStage()">Continue</button>
+        </div>
+    </div>
+
+    <!-- Game Complete Modal -->
+    <div id="gameCompleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">🏆 Congratulations!</div>
+            <div class="modal-message">
+                You completed all 10 stages!<br><br>
+                Total Time: <span id="totalTime">0.0s</span><br>
+                Total Moves: <span id="totalMoves">0</span>
+            </div>
+            <button class="btn" onclick="restartGame()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            apiUrl: 'https://2v7nwvlmwj.execute-api.eu-north-1.amazonaws.com/prod/level', // e.g., 'https://xxx.execute-api.us-east-1.amazonaws.com/prod/level'
+            sqsQueueUrl: 'https://sqs.eu-north-1.amazonaws.com/128290027522/maze-game-analytics', // Optional
+            cellSize: 30,
+            colors: {
+                wall: '#2c3e50',
+                path: '#ecf0f1',
+                player: '#3498db',
+                exit: '#2ecc71',
+                grid: '#bdc3c7'
+            }
+        };
+
+        // Game state
+        let gameState = {
+            currentStage: 1,
+            totalStages: 10,
+            maze: [],
+            playerX: 0,
+            playerY: 0,
+            endX: 0,
+            endY: 0,
+            moves: 0,
+            totalMoves: 0,
+            stageStartTime: 0,
+            gameStartTime: 0,
+            isPlaying: false
+        };
+
+        // Canvas elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Initialize game
+        async function initGame() {
+            gameState.gameStartTime = Date.now();
+            await loadStage(1);
+        }
+
+        // Load stage from API
+        async function loadStage(stageNumber) {
+            try {
+                document.getElementById('loadingMessage').style.display = 'block';
+                document.getElementById('canvasContainer').style.display = 'none';
+                document.getElementById('errorMessage').style.display = 'none';
+
+                const response = await fetch(`${CONFIG.apiUrl}/${stageNumber}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to load stage');
+                }
+
+                const stageData = data.data;
+
+                // Parse maze layout
+                gameState.maze = stageData.layout.split('\n').map(line => line.split(''));
+                gameState.playerX = stageData.start_x;
+                gameState.playerY = stageData.start_y;
+                gameState.endX = stageData.end_x;
+                gameState.endY = stageData.end_y;
+                gameState.currentStage = stageNumber;
+                gameState.moves = 0;
+                gameState.stageStartTime = Date.now();
+                gameState.isPlaying = true;
+
+                // Update UI
+                document.getElementById('currentStage').textContent = `${stageNumber}/${gameState.totalStages}`;
+                document.getElementById('moves').textContent = '0';
+                
+                // Show canvas
+                document.getElementById('loadingMessage').style.display = 'none';
+                document.getElementById('canvasContainer').style.display = 'flex';
+
+                // Render maze
+                renderMaze();
+
+                console.log(`Stage ${stageNumber} loaded successfully`);
+
+            } catch (error) {
+                console.error('Error loading stage:', error);
+                showError(`Failed to load stage ${stageNumber}: ${error.message}`);
+            }
+        }
+
+        // Render maze on canvas
+        function renderMaze() {
+            const maze = gameState.maze;
+            const cellSize = CONFIG.cellSize;
+
+            // Calculate canvas size
+            const mazeWidth = maze[0].length * cellSize;
+            const mazeHeight = maze.length * cellSize;
+            
+            canvas.width = mazeWidth;
+            canvas.height = mazeHeight;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw maze
+            for (let y = 0; y < maze.length; y++) {
+                for (let x = 0; x < maze[y].length; x++) {
+                    const cell = maze[y][x];
+                    const px = x * cellSize;
+                    const py = y * cellSize;
+
+                    if (cell === '#') {
+                        // Wall
+                        ctx.fillStyle = CONFIG.colors.wall;
+                        ctx.fillRect(px, py, cellSize, cellSize);
+                        ctx.strokeStyle = CONFIG.colors.grid;
+                        ctx.strokeRect(px, py, cellSize, cellSize);
+                    } else {
+                        // Path
+                        ctx.fillStyle = CONFIG.colors.path;
+                        ctx.fillRect(px, py, cellSize, cellSize);
+                        ctx.strokeStyle = CONFIG.colors.grid;
+                        ctx.strokeRect(px, py, cellSize, cellSize);
+                    }
+
+                    // Exit
+                    if (x === gameState.endX && y === gameState.endY) {
+                        ctx.fillStyle = CONFIG.colors.exit;
+                        ctx.fillRect(px, py, cellSize, cellSize);
+                    }
+                }
+            }
+
+            // Draw player
+            const playerPx = gameState.playerX * cellSize + cellSize / 2;
+            const playerPy = gameState.playerY * cellSize + cellSize / 2;
+            const playerRadius = cellSize / 3;
+
+            ctx.fillStyle = CONFIG.colors.player;
+            ctx.beginPath();
+            ctx.arc(playerPx, playerPy, playerRadius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Handle keyboard input
+        document.addEventListener('keydown', (e) => {
+            if (!gameState.isPlaying) return;
+
+            let newX = gameState.playerX;
+            let newY = gameState.playerY;
+
+            switch(e.key) {
+                case 'ArrowUp':
+                    newY--;
+                    e.preventDefault();
+                    break;
+                case 'ArrowDown':
+                    newY++;
+                    e.preventDefault();
+                    break;
+                case 'ArrowLeft':
+                    newX--;
+                    e.preventDefault();
+                    break;
+                case 'ArrowRight':
+                    newX++;
+                    e.preventDefault();
+                    break;
+                default:
+                    return;
+            }
+
+            // Validate move (local collision detection)
+            if (isValidMove(newX, newY)) {
+                gameState.playerX = newX;
+                gameState.playerY = newY;
+                gameState.moves++;
+                gameState.totalMoves++;
+
+                // Update UI
+                document.getElementById('moves').textContent = gameState.moves;
+
+                // Render
+                renderMaze();
+
+                // Check if reached exit
+                if (newX === gameState.endX && newY === gameState.endY) {
+                    stageComplete();
+                }
+            }
+        });
+
+        // Validate move
+        function isValidMove(x, y) {
+            const maze = gameState.maze;
+            
+            if (y < 0 || y >= maze.length) return false;
+            if (x < 0 || x >= maze[y].length) return false;
+            
+            return maze[y][x] !== '#';
+        }
+
+        // Stage complete
+        function stageComplete() {
+            gameState.isPlaying = false;
+
+            const stageTime = ((Date.now() - gameState.stageStartTime) / 1000).toFixed(1);
+
+            // Update modal
+            document.getElementById('stageTime').textContent = stageTime + 's';
+            document.getElementById('stageMoves').textContent = gameState.moves;
+            document.getElementById('stageCompleteMessage').innerHTML = 
+                `You completed Stage ${gameState.currentStage}!<br>` +
+                `Time: <span id="stageTime">${stageTime}s</span> | ` +
+                `Moves: <span id="stageMoves">${gameState.moves}</span>`;
+
+            // Send analytics (async, fire and forget)
+            sendAnalytics('level_complete', {
+                stage_number: gameState.currentStage,
+                time_taken: parseFloat(stageTime),
+                moves_count: gameState.moves
+            });
+
+            // Show appropriate modal
+            if (gameState.currentStage >= gameState.totalStages) {
+                gameComplete();
+            } else {
+                document.getElementById('stageCompleteModal').classList.add('active');
+            }
+        }
+
+        // Game complete
+        function gameComplete() {
+            const totalTime = ((Date.now() - gameState.gameStartTime) / 1000).toFixed(1);
+            
+            document.getElementById('totalTime').textContent = totalTime + 's';
+            document.getElementById('totalMoves').textContent = gameState.totalMoves;
+
+            // Send analytics
+            sendAnalytics('game_complete', {
+                total_time: parseFloat(totalTime),
+                total_moves: gameState.totalMoves
+            });
+
+            document.getElementById('gameCompleteModal').classList.add('active');
+        }
+
+        // Continue to next stage
+        function continueToNextStage() {
+            document.getElementById('stageCompleteModal').classList.remove('active');
+            loadStage(gameState.currentStage + 1);
+        }
+
+        // Restart game
+        function restartGame() {
+            document.getElementById('gameCompleteModal').classList.remove('active');
+            gameState.totalMoves = 0;
+            gameState.gameStartTime = Date.now();
+            loadStage(1);
+        }
+
+        // Send analytics (placeholder - implement SQS if needed)
+        function sendAnalytics(eventType, data) {
+            console.log('Analytics:', eventType, data);
+            // TODO: Implement SQS sending if needed
+        }
+
+        // Show error
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorMessage').style.display = 'block';
+            document.getElementById('loadingMessage').style.display = 'none';
+        }
+
+        // Update timer
+        setInterval(() => {
+            if (gameState.isPlaying) {
+                const elapsed = ((Date.now() - gameState.stageStartTime) / 1000).toFixed(1);
+                document.getElementById('time').textContent = elapsed + 's';
+            }
+        }, 100);
+
+        // Start game when page loads
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>

@@ -23,6 +23,9 @@ terraform/*.tfvars
 !terraform/*.tfvars.example
 terraform/lambda_function.zip
 
+# Debug Files
+debug/
+
 # IDE
 .vscode/
 .idea/
